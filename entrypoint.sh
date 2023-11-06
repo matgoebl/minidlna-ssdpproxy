@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# source: https://github.com/vladgh/docker_base_images/blob/main/minidlna/entrypoint.sh under the Apache License, Version 2.0
+# modified for non-root operation
+
+# Bash strict mode
+set -euo pipefail
+IFS=$'\n\t'
+
+# DEBUG
+[ -z "${DEBUG:-}" ] || set -x
+
+echo "Build: `cat /build.txt`"
+
+# VARs
+export TZ="${TZ:-}"
+export PUID="${PUID:-100}"
+export PGID="${PGID:-101}"
+export PIDFILE='/minidlna/minidlna.pid'
+export FORCE_SCAN="${FORCE_SCAN:-false}"
+export FORCE_REBUILD="${FORCE_REBUILD:-false}"
+
+# Remove old pid if it exists
+[ -f "$PIDFILE" ] && rm -f "$PIDFILE"
+
+#echo '=== Set user and group identifier'
+#groupmod --non-unique --gid "$PGID" minidlna
+#usermod --non-unique --uid "$PUID" minidlna
+
+if [[ -n "$TZ" ]]; then
+  echo '=== Set timezone'
+  setup-timezone -z "$TZ"
+fi
+
+echo '=== Set standard configuration'
+export MINIDLNA_DB_DIR="${MINIDLNA_DB_DIR:-/minidlna/cache}"
+export MINIDLNA_LOG_DIR="${MINIDLNA_LOG_DIR:-/minidlna}"
+export MINIDLNA_INOTIFY="${MINIDLNA_INOTIFY:-yes}"
+
+echo '=== Set configuration from environment variables'
+: > /minidlna/minidlna.conf
+for VAR in $(env); do
+  if [[ "$VAR" =~ ^MINIDLNA_ ]]; then
+    if [[ "$VAR" =~ ^MINIDLNA_MEDIA_DIR ]]; then
+      minidlna_name='media_dir'
+    else
+      minidlna_name=$(echo "$VAR" | sed -r "s/MINIDLNA_(.*)=.*/\\1/g" | tr '[:upper:]' '[:lower:]')
+    fi
+    minidlna_value=$(echo "$VAR" | sed -r "s/.*=(.*)/\\1/g")
+    echo "${minidlna_name}=${minidlna_value}" >> /minidlna/minidlna.conf
+  fi
+done
+
+#echo '=== Set permissions'
+#mkdir -p /minidlna/ "${MINIDLNA_DB_DIR}" "${MINIDLNA_LOG_DIR}"
+#chown -R "${PUID}:${PGID}" /minidlna/ "${MINIDLNA_DB_DIR}" "${MINIDLNA_LOG_DIR}"
+
+echo '=== Generate scan/rebuild flags'
+if [[ "$FORCE_SCAN" == true ]]; then
+  set -- -r "$@"
+fi
+if [[ "$FORCE_REBUILD" == true ]]; then
+  set -- -R "$@"
+fi
+
+echo '=== Start daemon'
+#exec su-exec minidlna /usr/sbin/minidlnad -P "$PIDFILE" -S "$@"
+exec /usr/sbin/minidlnad -P "$PIDFILE" -S -f /minidlna/minidlna.conf "$@"
