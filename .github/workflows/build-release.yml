@@ -88,10 +88,10 @@ jobs:
           build-args: |
             BUILDTAG=${{ env.VERSIONNUM }}
 
-      - name: Create helm chart
-        run: |
-          helm package --version $VERSIONNUM --app-version $VERSIONNUM helm-chart/
-          mv mpd-dlna-yamaha-avr-*.tgz mpd-dlna-yamaha-avr--helm-chart.tgz
+      # - name: Create helm chart
+      #   run: |
+      #     helm package --version $VERSIONNUM --app-version $VERSIONNUM helm-chart/
+      #     mv mpd-dlna-yamaha-avr-*.tgz mpd-dlna-yamaha-avr--helm-chart.tgz
 
       - name: Create release
         uses: "marvinpinto/action-automatic-releases@d68defdd11f9dcc7f52f35c1b7c236ee7513bcc1"
@@ -100,5 +100,5 @@ jobs:
           prerelease: ${{ github.event.pull_request.merged != true }}
           automatic_release_tag: v${{ env.VERSIONNUM }}
           title: ${{ env.BUILD }} ${{ env.VERSIONNUM }}
-          files: |
-            xxx--helm-chart.tgz
+          # files: |
+          #   xxx--helm-chart.tgz
