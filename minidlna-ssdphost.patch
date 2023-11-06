@@ -1,0 +1,25 @@
+diff --git a/getifaddr.c b/getifaddr.c
+index 2d9474c..5b02f61 100644
+--- a/getifaddr.c
++++ b/getifaddr.c
+@@ -95,6 +95,7 @@ getifaddr(const char *ifname)
+ 			DPRINTF(E_ERROR, L_GENERAL, "inet_ntop(): %s\n", strerror(errno));
+ 			continue;
+ 		}
++		if(getenv("MINIDLNASSDPPROXY_EXTIP")) {strncpy(lan_addr[n_lan_addr].str, getenv("MINIDLNASSDPPROXY_EXTIP"), sizeof(lan_addr[0].str));} /* overwrite lan address with external IP address */
+ 		addr_in = (struct sockaddr_in *)p->ifa_netmask;
+ 		memcpy(&lan_addr[n_lan_addr].mask, &addr_in->sin_addr, sizeof(lan_addr[n_lan_addr].mask));
+ 		lan_addr[n_lan_addr].ifindex = if_nametoindex(p->ifa_name);
+diff --git a/minidlna.c b/minidlna.c
+index 999adee..f75f0d6 100644
+--- a/minidlna.c
++++ b/minidlna.c
+@@ -1162,7 +1162,7 @@ main(int argc, char **argv)
+ 	}
+ 
+ 	sssdp = OpenAndConfSSDPReceiveSocket();
+-	if (sssdp < 0)
++	if (sssdp < 0 || getenv("MINIDLNASSDPPROXY_EXTIP"))
+ 	{
+ 		DPRINTF(E_INFO, L_GENERAL, "Failed to open socket for receiving SSDP. Trying to use MiniSSDPd\n");
+ 		reload_ifaces(0);	/* populate lan_addr[0].str */
